@@ -1,11 +1,23 @@
 import { groqService } from './services/groq';
 import { cerebrasService } from './services/cerebras';
+import { mistralService } from './services/mistral';
+import { openrouterService } from './services/openrouter';
+import { sambanovaService } from './services/sambanova';
+import { geminiService } from './services/gemini';
+import { cloudflareService } from './services/cloudflare';
 import type { AIService, ChatMessage } from './types';
 
 const services: AIService[] = [
-    groqService,
-    cerebrasService,
-];
+    process.env.GROQ_API_KEY && groqService,
+    process.env.CEREBRAS_API_KEY && cerebrasService,
+    process.env.MISTRAL_API_KEY && mistralService,
+    process.env.OPENROUTER_API_KEY && openrouterService,
+    process.env.SAMBANOVA_API_KEY && sambanovaService,
+    process.env.GEMINI_API_KEY && geminiService,
+    (process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN) && cloudflareService,
+].filter(Boolean) as AIService[];
+
+console.log(`Servicios activos: ${services.map(s => s.name).join(', ')}`);
 let currentServiceIndex = 0;
 
 function getNextService() {

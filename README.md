@@ -4,11 +4,11 @@ API unificada para servicios de inteligencia artificial con balanceo automático
 
 ## Descripción
 
-Este proyecto proporciona una capa de abstracción sobre múltiples servicios de IA (actualmente Groq y Cerebras), permitiendo realizar consultas sin preocuparse por qué proveedor se utiliza. El sistema alterna automáticamente entre servicios usando round-robin, lo que permite **racionar el uso de tokens** entre los free tiers de cada proveedor.
+Este proyecto proporciona una capa de abstracción sobre múltiples servicios de IA, permitiendo realizar consultas sin preocuparse por qué proveedor se utiliza. El sistema alterna automáticamente entre servicios usando round-robin, lo que permite **racionar el uso de tokens** entre los free tiers de cada proveedor.
 
 ## Características
 
-- **Multi-proveedor**: Soporte para Groq y Cerebras (extensible a más servicios)
+- **Multi-proveedor**: Soporte para 7 servicios de IA (Groq, Cerebras, Mistral, OpenRouter, SambaNova, Gemini, Cloudflare)
 - **Balanceo round-robin**: Distribuye las peticiones equitativamente entre proveedores
 - **Streaming**: Respuestas en tiempo real usando Server-Sent Events (SSE)
 - **Optimizado para free tier**: Maximiza el uso de tokens gratuitos alternando entre servicios
@@ -17,8 +17,7 @@ Este proyecto proporciona una capa de abstracción sobre múltiples servicios de
 ## Requisitos
 
 - [Bun](https://bun.sh) v1.0+
-- API Key de [Groq](https://console.groq.com)
-- API Key de [Cerebras](https://cloud.cerebras.ai)
+- API Keys de los servicios que desees usar (ver sección de configuración)
 
 ## Instalación
 
@@ -37,11 +36,24 @@ cp .env.example .env
 
 ## Configuración
 
-Crea un archivo `.env` con las siguientes variables:
+Crea un archivo `.env` con las siguientes variables (solo necesitas las de los servicios que vayas a usar):
 
 ```env
+# Servicios principales
 GROQ_API_KEY=tu_api_key_de_groq
 CEREBRAS_API_KEY=tu_api_key_de_cerebras
+
+# Servicios adicionales
+MISTRAL_API_KEY=tu_api_key_de_mistral
+OPENROUTER_API_KEY=tu_api_key_de_openrouter
+SAMBANOVA_API_KEY=tu_api_key_de_sambanova
+GEMINI_API_KEY=tu_api_key_de_gemini
+
+# Cloudflare Workers AI
+CF_ACCOUNT_ID=tu_account_id_de_cloudflare
+CF_API_TOKEN=tu_api_token_de_cloudflare
+
+# Configuración del servidor
 PORT=3000  # opcional, por defecto 3000
 ```
 
@@ -93,26 +105,42 @@ Envía mensajes al modelo de IA y recibe una respuesta en streaming.
 ## Arquitectura
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Cliente   │────▶│  bun-ai-api  │────▶│    Groq     │
-└─────────────┘     │  (round-robin)│     └─────────────┘
-                    │              │     ┌─────────────┐
-                    │              │────▶│  Cerebras   │
-                    └──────────────┘     └─────────────┘
+                         ┌─────────────┐
+                    ┌───▶│    Groq     │
+                    │    └─────────────┘
+                    │    ┌─────────────┐
+                    ├───▶│  Cerebras   │
+                    │    └─────────────┘
+                    │    ┌─────────────┐
+┌─────────────┐     │    │   Mistral   │
+│   Cliente   │────▶├───▶└─────────────┘
+└─────────────┘     │    ┌─────────────┐
+                    ├───▶│ OpenRouter  │
+  bun-ai-api        │    └─────────────┘
+  (round-robin)     │    ┌─────────────┐
+                    ├───▶│  SambaNova  │
+                    │    └─────────────┘
+                    │    ┌─────────────┐
+                    ├───▶│   Gemini    │
+                    │    └─────────────┘
+                    │    ┌─────────────┐
+                    └───▶│ Cloudflare  │
+                         └─────────────┘
 ```
 
-El servidor alterna entre servicios en cada petición:
-1. Primera petición → Groq
-2. Segunda petición → Cerebras
-3. Tercera petición → Groq
-4. ...y así sucesivamente
+El servidor alterna entre servicios en cada petición usando round-robin.
 
 ## Servicios Configurados
 
-| Servicio | Modelo | Max Tokens |
-|----------|--------|------------|
-| Groq | moonshotai/kimi-k2-instruct-0905 | 4,096 |
-| Cerebras | zai-glm-4.6 | 40,960 |
+| Servicio | Modelo | Free Tier | Obtener API Key |
+|----------|--------|-----------|-----------------|
+| Groq | moonshotai/kimi-k2-instruct-0905 | ~14,400 req/día | [console.groq.com](https://console.groq.com) |
+| Cerebras | zai-glm-4.6 | Variable | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
+| Mistral | mistral-small-latest | 1B tokens/mes | [console.mistral.ai](https://console.mistral.ai) |
+| OpenRouter | llama-3.3-70b-instruct:free | 50-1000 req/día | [openrouter.ai](https://openrouter.ai) |
+| SambaNova | Meta-Llama-3.1-70B-Instruct | $5 en créditos | [cloud.sambanova.ai](https://cloud.sambanova.ai) |
+| Gemini | gemini-1.5-flash | 25 req/día | [aistudio.google.com](https://aistudio.google.com) |
+| Cloudflare | llama-3.1-8b-instruct | 10K neurons/día | [dash.cloudflare.com](https://dash.cloudflare.com) |
 
 ## Agregar un nuevo servicio
 
@@ -136,7 +164,7 @@ export const nuevoServicio: AIService = {
 ```typescript
 import { nuevoServicio } from "./services/nuevo-servicio";
 
-const services: AIService[] = [groqService, cerebrasService, nuevoServicio];
+const services: AIService[] = [..., nuevoServicio];
 ```
 
 ## Licencia
