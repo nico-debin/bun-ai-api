@@ -32,17 +32,31 @@ const server = Bun.serve({
     const { pathname } = new URL(req.url);
 
     if (req.method === 'POST' && pathname === '/chat') {
-        const { messages } = await req.json() as { messages: ChatMessage[] };
+        const { messages, stream = true } = await req.json() as { messages: ChatMessage[], stream?: boolean };
         const service = getNextService();
 
         console.log(`Using service: ${service?.name}`);
-        const stream = await service?.chat(messages);
+        const responseStream = await service?.chat(messages);
 
-        return new Response(stream, {
+        if (stream) {
+            return new Response(responseStream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                },
+            });
+        }
+
+        // Non-streaming: accumulate all chunks and return JSON
+        let content = '';
+        for await (const chunk of responseStream!) {
+            content += chunk;
+        }
+
+        return new Response(JSON.stringify({ content }), {
             headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
             },
         });
       }

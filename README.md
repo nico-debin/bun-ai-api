@@ -87,7 +87,7 @@ La respuesta se envía como stream SSE.
 
 ### POST /chat
 
-Envía mensajes al modelo de IA y recibe una respuesta en streaming.
+Envía mensajes al modelo de IA.
 
 **Request Body:**
 
@@ -96,11 +96,33 @@ Envía mensajes al modelo de IA y recibe una respuesta en streaming.
   "messages": [
     { "role": "system", "content": "Eres un asistente útil" },
     { "role": "user", "content": "Tu mensaje aquí" }
-  ]
+  ],
+  "stream": true
 }
 ```
 
-**Response:** Server-Sent Events (text/event-stream)
+**Parámetros:**
+
+| Parámetro | Tipo | Default | Descripción |
+|-----------|------|---------|-------------|
+| `messages` | array | requerido | Array de mensajes con `role` y `content` |
+| `stream` | boolean | `true` | Si `true`, respuesta SSE. Si `false`, respuesta JSON |
+
+**Response con `stream: true` (default):**
+
+```
+Content-Type: text/event-stream
+```
+Respuesta en chunks de texto en tiempo real.
+
+**Response con `stream: false`:**
+
+```json
+{
+  "content": "La respuesta completa del modelo..."
+}
+```
+Ideal para integraciones con n8n, Zapier, etc.
 
 ## Arquitectura
 

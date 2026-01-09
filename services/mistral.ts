@@ -1,4 +1,4 @@
-import Mistral from '@mistralai/mistralai';
+import { Mistral } from '@mistralai/mistralai';
 import type { AIService, ChatMessage } from '../types';
 
 const mistral = new Mistral();

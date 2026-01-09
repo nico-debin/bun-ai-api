@@ -1,15 +1,22 @@
 import OpenAI from 'openai';
 import type { AIService, ChatMessage } from '../types';
 
-const openrouter = new OpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: process.env.OPENROUTER_API_KEY,
-});
+let client: OpenAI | null = null;
+
+function getClient() {
+    if (!client) {
+        client = new OpenAI({
+            baseURL: 'https://openrouter.ai/api/v1',
+            apiKey: process.env.OPENROUTER_API_KEY,
+        });
+    }
+    return client;
+}
 
 export const openrouterService: AIService = {
     name: 'OpenRouter',
     async chat(messages: ChatMessage[]) {
-        const stream = await openrouter.chat.completions.create({
+        const stream = await getClient().chat.completions.create({
             model: 'meta-llama/llama-3.3-70b-instruct:free',
             messages,
             stream: true,

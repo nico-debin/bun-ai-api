@@ -1,15 +1,22 @@
 import OpenAI from 'openai';
 import type { AIService, ChatMessage } from '../types';
 
-const sambanova = new OpenAI({
-    baseURL: 'https://api.sambanova.ai/v1',
-    apiKey: process.env.SAMBANOVA_API_KEY,
-});
+let client: OpenAI | null = null;
+
+function getClient() {
+    if (!client) {
+        client = new OpenAI({
+            baseURL: 'https://api.sambanova.ai/v1',
+            apiKey: process.env.SAMBANOVA_API_KEY,
+        });
+    }
+    return client;
+}
 
 export const sambanovaService: AIService = {
     name: 'SambaNova',
     async chat(messages: ChatMessage[]) {
-        const stream = await sambanova.chat.completions.create({
+        const stream = await getClient().chat.completions.create({
             model: 'Meta-Llama-3.1-70B-Instruct',
             messages,
             stream: true,
